@@ -15,9 +15,11 @@
     ./test/test_poker
     ctest
 
+    export LD_LIBRARY_PATH=~/.conan2/p/b/onetb1501c61605790/p/lib:$LD_LIBRARY_PATH
+
 # Debug Config
 
-    conan install . --output-folder=build/Debug --build=missing --settings=build_type=Debug -s arch=armv8
+    conan install . --output-folder=build/Debug --build=missing --settings=build_type=Debug
     cd build/Debug # Everything below for debug config is in build/Debug!!!
     
     cmake ../.. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake  -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_BUILD_TYPE=Debug
@@ -28,6 +30,12 @@
     ctest
 
     Note - Grok say I may need 'conan install .. --build=missing -s arch=armv8 -s build_type=Debug'
+
+    export LD_LIBRARY_PATH=~/.conan2/p/b/onetb99d8bc5c38cdc/p/lib:$LD_LIBRARY_PATH
+
+    nvcc -o poker main.cu
+
+    nvcc -o testPoker pokerTests.cu -I/root/.conan2/p/b/catch2947d50bbdf95/p/include/ -L/root/.conan2/p/b/catch2947d50bbdf95/p/lib -lCatch2Maind -lCatch2d
 
 # Tasks
 

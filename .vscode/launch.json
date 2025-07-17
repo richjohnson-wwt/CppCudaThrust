@@ -5,16 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) Launch Test",
+            "name": "(gdb) Launch Test",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Debug/test/test_poker",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "~/.conan2/p/b/onetb99d8bc5c38cdc/p/lib"
+                }
+            ],
             "externalConsole": false,
-            "MIMode": "lldb",
+            "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -25,16 +30,21 @@
             "preLaunchTask": "CMake Build Debug"
         },
         {
-            "name": "(lldb) Launch Main",
+            "name": "(gdb) Launch Main",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Debug/src/poker",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "~/.conan2/p/b/onetb99d8bc5c38cdc/p/lib"
+                }
+            ],
             "externalConsole": false,
-            "MIMode": "lldb",
+            "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

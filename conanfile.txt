@@ -1,6 +1,7 @@
 [requires]
 catch2/3.6.0
 thrust/1.17.2
+onetbb/2021.10.0
 
 [generators]
 CMakeDeps

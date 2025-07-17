@@ -12,17 +12,18 @@
         },
         {
             "type": "cppbuild",
-            "label": "C/C++: clang++ build active file",
-            "command": "/usr/bin/clang++",
+            "label": "C/C++: g++ build active file",
+            "command": "/usr/bin/g++",
             "args": [
-                "-fcolor-diagnostics",
-                "-fansi-escape-codes",
                 "-g",
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
-                "-I/Users/johnsori/.conan2/p/b/catch9b35e3ad7680f/p/include",
-                "-I/Users/johnsori/.conan2/p/thruseaa776b4fc2fb/p/include"
+                "-I/root/.conan2/p/b/catch2947d50bbdf95/p/include/",
+                "-I/root/.conan2/p/onetb1501c61605790/p/include/",
+                "-I/root/.conan2/p/thruseaa776b4fc2fb/p/include/",
+                "-I/root/.conan2/p/cub980a09ebeeda8/p/include/",
+                "-I/usr/local/cuda/include/"
             ],
             "options": {
                 "cwd": "${fileDirname}"
