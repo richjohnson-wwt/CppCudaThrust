@@ -48,3 +48,12 @@ cmd+shift+b will build the project.
 MacOS should use the LLDB debugger. GDB has issues on arm64.
 pgrep -l lldb-mi # if memory issues.
 kill -9 $PID
+
+# Git
+
+    git config --global user.email "rich.johnson@wwt.com"
+    git config --global user.name "Rich Johnson"
+
+    [user]
+        email = rich.johnson@wwt.com
+        name = Rich Johnson
