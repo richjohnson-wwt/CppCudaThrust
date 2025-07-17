@@ -4,9 +4,9 @@
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
 
-void foo() {
+void foo(int sum) {
     
-    std::cout << "The sum from thrust is: " << 111 << std::endl;
+    std::cout << "The sum from thrust is: " << sum << std::endl;
 }
 
 int main() {
@@ -23,7 +23,7 @@ int main() {
     thrust::sort(thrust::device, vec.begin(), vec.end());
     int sum = thrust::reduce(thrust::device, vec.begin(), vec.end(), 0);
 
-    foo();
+    foo(sum);
 
     return EXIT_SUCCESS;
 }

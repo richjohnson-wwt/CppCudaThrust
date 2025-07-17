@@ -3,6 +3,7 @@
     uv venv
     source .venv/bin/activate
     uv pip install conan
+    conan profile detect
 
 # Release Config
 
@@ -22,8 +23,8 @@
     conan install . --output-folder=build/Debug --build=missing --settings=build_type=Debug
     cd build/Debug # Everything below for debug config is in build/Debug!!!
     
-    cmake ../.. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake  -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_BUILD_TYPE=Debug
-    cmake --build . --config Debug
+    cmake ../.. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug
+    cmake --build .
 
     ./src/poker
     ./test/test_poker

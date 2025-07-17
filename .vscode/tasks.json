@@ -20,10 +20,6 @@
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
                 "-I/root/.conan2/p/b/catch2947d50bbdf95/p/include/",
-                "-I/root/.conan2/p/onetb1501c61605790/p/include/",
-                "-I/root/.conan2/p/thruseaa776b4fc2fb/p/include/",
-                "-I/root/.conan2/p/cub980a09ebeeda8/p/include/",
-                "-I/usr/local/cuda/include/"
             ],
             "options": {
                 "cwd": "${fileDirname}"
