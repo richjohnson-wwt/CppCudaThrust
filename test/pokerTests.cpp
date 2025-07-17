@@ -8,7 +8,7 @@
 #include <thrust/execution_policy.h>
 
 
-int foo() {
+int helper() {
     std::vector<int> host_vec{3, 1, 4, 1, 5, 9};
     thrust::device_vector<int> vec(host_vec.begin(), host_vec.end());
 
@@ -17,8 +17,9 @@ int foo() {
     std::cout << "After sort" << std::endl;
     return thrust::reduce(thrust::device, vec.begin(), vec.end(), 0);
 }
+
 TEST_CASE("Thrust sort and reduce on CPU (via OpenMP backend)", "[thrust]") {
-    int sum = foo();
+    int sum = helper();
     REQUIRE(sum == 23);
     // REQUIRE(vec[0] == 1);
     // REQUIRE(vec[5] == 9);
