@@ -4,6 +4,11 @@
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
 
+__global__ void pokerKernel() 
+{
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+}
+
 void foo(int sum) {
     
     std::cout << "The sum from thrust is: " << sum << std::endl;
