@@ -5,7 +5,7 @@
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
-
+#include "../src/poker.cuh"
 
 int helper() {
     std::vector<int> host_vec{3, 1, 4, 1, 5, 9};

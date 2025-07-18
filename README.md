@@ -11,6 +11,10 @@
         email = rich.johnson@wwt.com
         name = Rich Johnson
 
+    After conan install, update task.json Catch2 path
+    ls ~/.conan2/p/b
+    set(CMAKE_CUDA_ARCHITECTURES 89) based on the nvidia-smi (ie RTX 5070 Ti)
+
 # Release Config
 
     conan install . --build=missing --output-folder=build/Release
@@ -53,6 +57,7 @@ cmd+shift+b will build the project.
 MacOS should use the LLDB debugger. GDB has issues on arm64.
 pgrep -l lldb-mi # if memory issues.
 kill -9 $PID
+vast.ai - Cannot debug on GPU without special tools: nsight compute, cuda-gdb TODO
 
 # Git
 

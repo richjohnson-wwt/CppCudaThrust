@@ -5,19 +5,34 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch Test",
+            "name": "(gdb) Launch Poker Test",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Debug/test/test_poker",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
                 {
-                    "name": "LD_LIBRARY_PATH",
-                    "value": "~/.conan2/p/b/onetb99d8bc5c38cdc/p/lib"
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
                 }
             ],
+            "preLaunchTask": "CMake Build Debug"
+        },
+        {
+            "name": "(gdb) Launch Evaluator Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/test/test_evaluator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
@@ -37,12 +52,7 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [
-                {
-                    "name": "LD_LIBRARY_PATH",
-                    "value": "~/.conan2/p/b/onetb99d8bc5c38cdc/p/lib"
-                }
-            ],
+            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [

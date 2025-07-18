@@ -19,7 +19,7 @@
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
-                "-I/root/.conan2/p/b/catch2947d50bbdf95/p/include/",
+                "-I/root/.conan2/p/b/catch69df89cc2d1ee/p/include/",
             ],
             "options": {
                 "cwd": "${fileDirname}"
