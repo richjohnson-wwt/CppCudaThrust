@@ -6,6 +6,7 @@
 #include <thrust/transform.h>
 #include <thrust/random.h>
 #include <thrust/execution_policy.h>
+#include <curand_kernel.h>
 
 
 using Hand = thrust::tuple<int, int, int, int, int>;
@@ -13,29 +14,24 @@ using Hand = thrust::tuple<int, int, int, int, int>;
 class PokerHand 
 {
 public:
-    __device__ void dealHand(Hand* d_hands, int thread_id, int seed1) {
+    __device__ void dealHand(Hand* d_hands, int thread_id, curandState* rng_states) {
         bool used[52] = {false};
         int cards[5];
 
-        // Very simple PRNG for illustration only
-        unsigned int seed = simple_rand(thread_id + seed1);
+        // Use cuRAND for high-quality random number generation
+        curandState* rng = &rng_states[thread_id];
 
         for (int i = 0; i < 5; ++i) {
             int card;
             do {
-                seed = seed * 1664525 + 1013904223;  // LCG
-                card = seed % 52;
+                // Generate uniform random number in [0, 51]
+                card = curand(rng) % 52;
             } while (used[card]);
             used[card] = true;
             cards[i] = card;
         }
 
         d_hands[thread_id] = thrust::make_tuple(cards[0], cards[1], cards[2], cards[3], cards[4]);
-    }
-private:
-    __device__ unsigned int simple_rand(int tid, int iter = 0) {
-        unsigned int seed = tid * 9781 + iter * 7919 + 17;
-        return seed * 1664525 + 1013904223;
     }
 
 };

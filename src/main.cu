@@ -4,18 +4,29 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/execution_policy.h>
+#include <curand_kernel.h>
 #include "evaluator.cuh"
 
+// Kernel to initialize cuRAND states
+__global__ void setupRNG(curandState *state, unsigned long seed, int num_threads)
+{
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid < num_threads) {
+        // Each thread gets different sequence number for better randomness
+        curand_init(seed, tid, 0, &state[tid]);
+    }
+}
+
 // Kernel to deal and evaluate poker hands
-__global__ void dealAndEvaluateHands(Hand* d_hands, int* d_results, int num_hands, int seed)
+__global__ void dealAndEvaluateHands(Hand* d_hands, int* d_results, int num_hands, curandState* rng_states)
 {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     
     if (tid < num_hands) {
         PokerHand pokerHand;
         
-        // Deal a hand for this thread
-        pokerHand.dealHand(d_hands, tid, seed);
+        // Deal a hand for this thread using cuRAND
+        pokerHand.dealHand(d_hands, tid, rng_states);
         
         // Evaluate the hand
         d_results[tid] = EvaluatorHand{}(d_hands[tid]);
@@ -95,11 +106,21 @@ int main() {
     std::cout << "Using " << NUM_BLOCKS << " blocks with " << THREADS_PER_BLOCK << " threads each\n";
     
     // Generate seed from current time
-    unsigned int seed = std::chrono::system_clock::now().time_since_epoch().count();
+    unsigned long seed = std::chrono::system_clock::now().time_since_epoch().count();
     
     // Allocate device memory using thrust::device_vector (RAII approach)
     thrust::device_vector<Hand> d_hands(NUM_HANDS);
     thrust::device_vector<int> d_results(NUM_HANDS);
+    
+    // Allocate cuRAND states for each thread
+    curandState* d_rng_states;
+    cudaMalloc(&d_rng_states, NUM_HANDS * sizeof(curandState));
+    
+    std::cout << "Initializing random number generators...\n";
+    
+    // Initialize cuRAND states
+    setupRNG<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(d_rng_states, seed, NUM_HANDS);
+    cudaDeviceSynchronize();
     
     // Start timing
     auto start = std::chrono::high_resolution_clock::now();
@@ -109,7 +130,7 @@ int main() {
         thrust::raw_pointer_cast(d_hands.data()),
         thrust::raw_pointer_cast(d_results.data()),
         NUM_HANDS,
-        seed
+        d_rng_states
     );
     
     // Wait for GPU to finish
@@ -132,6 +153,9 @@ int main() {
     
     // Print statistics with examples of rare hands
     printStatistics(h_results, h_hands, NUM_HANDS);
+    
+    // Cleanup cuRAND states
+    cudaFree(d_rng_states);
     
     return EXIT_SUCCESS;
 }

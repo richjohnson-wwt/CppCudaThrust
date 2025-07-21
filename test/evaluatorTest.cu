@@ -52,12 +52,12 @@ __global__ void testEvaluateAllHandsKernel(Hand* d_hands_ptr, int* d_results_ptr
     }
 }
 
-__global__ void generateHandsKernel(Hand* d_hands, int num_hands, int seed)
+__global__ void generateHandsKernel(Hand* d_hands, int num_hands, curandState* rng_states)
 {
     PokerHand testObject;
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid < num_hands) {
-        testObject.dealHand(d_hands, tid, seed);
+        testObject.dealHand(d_hands, tid, rng_states);
     }
 }
 
@@ -436,12 +436,14 @@ TEST_CASE("Evaluator Tests - evaluateAllHands 2 straight flush hands", "[evaluat
 
 TEST_CASE("Deal Hand", "[evaluator]") 
 {
-    unsigned long seed = std::chrono::system_clock::now().time_since_epoch().count();
     int num_hands = 128;
+    curandState* d_rng_states;
+    cudaMalloc(&d_rng_states, num_hands * sizeof(curandState));
+    
     thrust::device_vector<Hand> d_hands(num_hands);
 
     generateHandsKernel<<<(num_hands + 31) / 32, 32>>>(
-        thrust::raw_pointer_cast(d_hands.data()), num_hands, seed
+        thrust::raw_pointer_cast(d_hands.data()), num_hands, d_rng_states
     );
     cudaDeviceSynchronize();
 
