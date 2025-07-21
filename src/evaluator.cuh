@@ -14,11 +14,16 @@ using Hand = thrust::tuple<int, int, int, int, int>;
 
 struct evaluate_hand 
 {
-    __device__ unsigned int simple_rand(int tid, int iter = 0) {
-        unsigned int seed = tid * 9781 + iter * 7919 + 17;
-        return seed * 1664525 + 1013904223;
-    }
 
+    // Allow test kernels to access private methods for unit testing
+    friend __global__ void testUnpackTupleKernel(int* resultCards, int a, int b, int c, int d, int e);
+    friend __global__ void testRankAndSuitsKernel(uint8_t* resultRanks, uint8_t* resultSuits, int a, int b, int c, int d, int e);
+    friend __global__ void testBubbleSortHandKernel(uint8_t* resultCards);
+    friend __global__ void testRankAndPairCountsKernel(int* rankCount, int* pairCount, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e);
+    friend __global__ void testFlushAndStaightKernel(bool* resultIsFlush, bool* resultIsStraight, uint8_t* ranks, uint8_t* suits);
+
+public:
+    // Public interface - methods called from outside the struct
     __device__ void dealHand(Hand* d_hands, int thread_id, int seed1) {
         bool used[52] = {false};
         int cards[5];
@@ -37,6 +42,60 @@ struct evaluate_hand
         }
     
         d_hands[thread_id] = thrust::make_tuple(cards[0], cards[1], cards[2], cards[3], cards[4]);
+    }
+
+    // Main evaluation function - called from kernels
+    __device__ int operator()(const Hand& hand) const 
+    {
+        int cards[5];
+        unpackTuple(hand, cards);
+    
+        uint8_t ranks[5];
+        uint8_t suits[5];
+    
+        rankAndSuits(&cards[0], ranks, suits);
+        // Remove showHand call to avoid garbled output
+        bubbleSortHand(ranks);
+    
+        int maxRankCount = 0;
+        int pairCount = 0;
+        doRankAndPairCounts(&ranks[0], maxRankCount, pairCount);
+    
+        bool isFlush = false;
+        bool isStraight = false;
+        doFlushAndStaight(&ranks[0], &suits[0], isFlush, isStraight);
+    
+        if (isFlush && isStraight && ranks[4] == 12) {
+            // Royal Flush - don't print here due to thread concurrency
+            return 9; // Royal Flush
+        } else if (isFlush && isStraight) {
+            // showHand(ranks, suits);
+            return 8; // Straight Flush
+        } else if (maxRankCount == 4) {
+            // showHand(ranks, suits);
+            return 7; // Four of a Kind
+        } else if (maxRankCount == 3 && pairCount == 1) {
+            return 6; // Full House
+        } else if (isFlush) {
+            return 5; // Flush
+        } else if (isStraight) {
+            return 4; // Straight
+        } else if (maxRankCount == 3) {
+            return 3; // Three of a Kind
+        } else if (pairCount == 2) {
+            return 2; // Two Pair
+        } else if (pairCount == 1) {
+            return 1; // One Pair
+        } else {
+            return 0; // High Card
+        }
+    }
+
+private:
+    // private helper methods - internal implementation details. Allows access to tests.
+    __device__ unsigned int simple_rand(int tid, int iter = 0) {
+        unsigned int seed = tid * 9781 + iter * 7919 + 17;
+        return seed * 1664525 + 1013904223;
     }
 
     __device__ void unpackTuple(const Hand& hand, int* cards) const 
@@ -97,95 +156,17 @@ struct evaluate_hand
         }
     
         // Check for straight
-        isStraight = (ranks[0] + 4 == ranks[4] && ranks[1] + 3 == ranks[4] && ranks[2] + 2 == ranks[4] && ranks[3] + 1 == ranks[4]) ||
-                            (ranks[0] == 0 && ranks[1] == 9 && ranks[2] == 10 && ranks[3] == 11 && ranks[4] == 12);
-    
-    }
-
-    __device__ int operator()(const Hand& hand) const 
-    {
-        int cards[5];
-        unpackTuple(hand, cards);
-    
-        uint8_t ranks[5];
-        uint8_t suits[5];
-    
-        rankAndSuits(&cards[0], ranks, suits);
-        showHand(ranks, suits);
-        bubbleSortHand(ranks);
-    
-        int maxRankCount = 0;
-        int pairCount = 0;
-        doRankAndPairCounts(&ranks[0], maxRankCount, pairCount);
-    
-        bool isFlush = false;
-        bool isStraight = false;
-        doFlushAndStaight(&ranks[0], &suits[0], isFlush, isStraight);
-    
-        //showHand(ranks, suits);
-    
-        if (isFlush && isStraight && ranks[4] == 12) {
-            // showHand(ranks, suits);
-            return 9; // Royal Flush
-        } else if (isFlush && isStraight) {
-            // showHand(ranks, suits);
-            return 8; // Straight Flush
-        } else if (maxRankCount == 4) {
-            // showHand(ranks, suits);
-            return 7; // Four of a Kind
-        } else if (maxRankCount == 3 && pairCount == 1) {
-            return 6; // Full House
-        } else if (isFlush) {
-            return 5; // Flush
-        } else if (isStraight) {
-            return 4; // Straight
-        } else if (maxRankCount == 3) {
-            return 3; // Three of a Kind
-        } else if (pairCount == 2) {
-            return 2; // Two Pair
-        } else if (pairCount == 1) {
-            return 1; // One Pair
-        } else {
-            return 0; // High Card
+        // Normal straight: consecutive ranks
+        isStraight = (ranks[0] + 1 == ranks[1] && ranks[1] + 1 == ranks[2] && 
+                      ranks[2] + 1 == ranks[3] && ranks[3] + 1 == ranks[4]);
+        
+        // Special case: A-2-3-4-5 low straight (A=0, 2=1, 3=2, 4=3, 5=4)
+        if (!isStraight && ranks[0] == 0 && ranks[1] == 1 && ranks[2] == 2 && ranks[3] == 3 && ranks[4] == 4) {
+            isStraight = true;
         }
+    
     }
 
-    __device__ void showHand(uint8_t *ranks, uint8_t *suits) const 
-    {
-        printf("EvalHand:");
-        for (int i = 0; i < 5; i++) {
-            // printf("x%c%c", ranks[hand[i] % 13], suits[hand[i] / 13]);
-            printf("%c%c ", "23456789TJQKA"[ranks[i]], "CDHS"[suits[i]]);
-        }
-        printf("\n");
-    }
-
-    __device__ void tallyResults(thrust::device_vector<int> &handTypeCounts, int* numberOfHands, thrust::device_vector<int> &d_results) 
-    {
-        // std::vector<long> handTypeCounts(10, 0);
-        for (int i = 0; i < 5; i++) {
-            if (d_results[i] < 10) {
-                handTypeCounts[d_results[i]]++;
-            }
-        }
-
-        // for (int i = 0; i < 10; i++) {
-        //     std::cout << handTypeNames[i] << ": " << handTypeCounts[i] << " ("
-        //         << (double)handTypeCounts[i] / *numberOfHands * 100 << "%)" << std::endl;
-        // }
-    }
-
-    // __device__ void evaluateAllHands2(thrust::device_vector<Hand>& d_hands, thrust::device_vector<int> &d_results) 
-    // {
-    //     thrust::transform(
-    //         thrust::device,
-    //         d_hands.begin(), 
-    //         d_hands.end(),
-    //         d_results.begin(),
-    //         [] __device__ (const Hand& hand) {
-    //             return evaluate_hand()(hand);
-    //         });
-    // }
 };
 
 #endif // EVALUATOR_H

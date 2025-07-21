@@ -450,6 +450,19 @@ TEST_CASE("Deal Hand", "[evaluator]")
 
     CHECK(h_hands.size() == num_hands);
 
+
+
+    Hand hand = h_hands[0];
+    int cards[5];
+    
+    cards[0] = thrust::get<0>(hand);
+    cards[1] = thrust::get<1>(hand);
+    cards[2] = thrust::get<2>(hand);
+    cards[3] = thrust::get<3>(hand);
+    cards[4] = thrust::get<4>(hand);
+
+    CHECK((cards[0] >= 0 && cards[0] <= 51));
+
     // for (const auto& h : h_hands) 
     // {
     //     std::cout << "Hand: "
