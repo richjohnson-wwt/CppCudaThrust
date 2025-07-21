@@ -1,3 +1,7 @@
+# About
+
+This is a learning project for CUDA development. Setting up a development environment with unit tests was the main purpose. It uses Conan version 2 package manager and CMake. The unit tests run on the GPU as does the main app.
+
 # Intial Setup - Do every time a new VM is started
 
     uv venv
@@ -14,19 +18,6 @@
     After conan install, update task.json Catch2 path
     ls ~/.conan2/p/b
     set(CMAKE_CUDA_ARCHITECTURES 89) based on the nvidia-smi (ie RTX 5070 Ti)
-
-# Release Config
-
-    conan install . --build=missing --output-folder=build/Release
-    cd build/Release 
-
-    # All commands in build/Release!!!
-    cmake ../.. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake  -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_BUILD_TYPE=Release
-    cmake --build . 
-
-    ./src/poker   
-    ./test/test_poker
-    ctest
 
 # Debug Config
 
@@ -46,6 +37,21 @@
     nvcc -o poker main.cu
 
     nvcc -o testPoker pokerTests.cu -I/root/.conan2/p/b/catch2947d50bbdf95/p/include/ -L/root/.conan2/p/b/catch2947d50bbdf95/p/lib -lCatch2Maind -lCatch2d
+
+# Release Config
+
+    conan install . --build=missing --output-folder=build/Release
+    cd build/Release 
+
+    # All commands in build/Release!!!
+    cmake ../.. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake  -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_BUILD_TYPE=Release
+    cmake --build . 
+
+    ./src/poker   
+    ./test/test_poker
+    ctest
+
+
 
 # Tasks
 

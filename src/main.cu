@@ -4,7 +4,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <thrust/execution_policy.h>
-#include "poker.cuh"
 #include "evaluator.cuh"
 
 // Kernel to deal and evaluate poker hands
@@ -13,13 +12,13 @@ __global__ void dealAndEvaluateHands(Hand* d_hands, int* d_results, int num_hand
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     
     if (tid < num_hands) {
-        evaluate_hand evaluator;
+        PokerHand pokerHand;
         
         // Deal a hand for this thread
-        evaluator.dealHand(d_hands, tid, seed);
+        pokerHand.dealHand(d_hands, tid, seed);
         
         // Evaluate the hand
-        d_results[tid] = evaluator(d_hands[tid]);
+        d_results[tid] = EvaluatorHand{}(d_hands[tid]);
     }
 }
 

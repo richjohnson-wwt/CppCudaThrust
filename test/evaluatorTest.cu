@@ -1,62 +1,63 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "../src/poker.cuh"
+
 #include "../src/evaluator.cuh"
 
 
 
 __global__ void testUnpackTupleKernel(int* resultCards, int a, int b, int c, int d, int e) 
 {
-    evaluate_hand testObject; // Create an instance of evaluate_hand
+    EvaluatorHelper testObject; // Create an instance of evaluate_hand
     Hand hand = thrust::make_tuple(a, b, c, d, e);
     testObject.unpackTuple(hand, resultCards); // Call unpackTuple
 }
 
 __global__ void testRankAndSuitsKernel(uint8_t* resultRanks, uint8_t* resultSuits, int a, int b, int c, int d, int e) 
 {
-    evaluate_hand testObject; // Create an instance of evaluate_hand
+    EvaluatorHelper testObject; // Create an instance of evaluate_hand
     int hand[5] = {a, b, c, d, e};
     testObject.rankAndSuits(&hand[0], resultRanks, resultSuits);
 }
 
 __global__ void testBubbleSortHandKernel(uint8_t* resultCards) {
-    evaluate_hand testObject; // Create an instance of evaluate_hand
+    EvaluatorHelper testObject; // Create an instance of evaluate_hand
     testObject.bubbleSortHand(resultCards);
     printf("\n\nResult: %d, %d, %d, %d, %d\n\n", resultCards[0], resultCards[1], resultCards[2], resultCards[3], resultCards[4]);
 }
 
 __global__ void testRankAndPairCountsKernel(int* rankCount, int* pairCount, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e)
 {
-    evaluate_hand testObject; // Create an instance of evaluate_hand
+    EvaluatorHelper testObject; // Create an instance of evaluate_hand
     uint8_t ranks[5] = {a, b, c, d, e};
     testObject.doRankAndPairCounts(ranks, *rankCount, *pairCount);
 }
 
 __global__ void testFlushAndStaightKernel(bool* resultIsFlush, bool* resultIsStraight, uint8_t* ranks, uint8_t* suits) 
 {
-    evaluate_hand testObject; // Create an instance of evaluate_hand
+    EvaluatorHelper testObject; // Create an instance of evaluate_hand
     testObject.doFlushAndStaight(&ranks[0], &suits[0], *resultIsFlush, *resultIsStraight);
 }
 
 __global__ void testOperatorOverloadKernel(int* resultScore, int a, int b, int c, int d, int e) 
 {
     Hand hand = thrust::make_tuple(a, b, c, d, e);
-    *resultScore = evaluate_hand{}(hand);
+    *resultScore = EvaluatorHand{}(hand);
 }
 
 __global__ void testEvaluateAllHandsKernel(Hand* d_hands_ptr, int* d_results_ptr, int count) 
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i < count) {
-        d_results_ptr[i] = evaluate_hand{}(d_hands_ptr[i]);
+        d_results_ptr[i] = EvaluatorHand{}(d_hands_ptr[i]);
     }
 }
 
 __global__ void generateHandsKernel(Hand* d_hands, int num_hands, int seed)
 {
+    PokerHand testObject;
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid < num_hands) {
-        evaluate_hand{}.dealHand(d_hands, tid, seed);
+        testObject.dealHand(d_hands, tid, seed);
     }
 }
 
