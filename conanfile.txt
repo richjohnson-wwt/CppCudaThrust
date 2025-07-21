@@ -1,6 +1,5 @@
 [requires]
 catch2/3.6.0
-thrust/1.17.2
 
 [generators]
 CMakeDeps

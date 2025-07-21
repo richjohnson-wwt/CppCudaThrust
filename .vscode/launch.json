@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) Launch Test",
+            "name": "(gdb) Launch Poker Test",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Debug/test/test_poker",
@@ -14,7 +14,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb",
+            "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -25,7 +25,27 @@
             "preLaunchTask": "CMake Build Debug"
         },
         {
-            "name": "(lldb) Launch Main",
+            "name": "(gdb) Launch Evaluator Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/test/test_evaluator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "CMake Build Debug"
+        },
+        {
+            "name": "(gdb) Launch Main",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Debug/src/poker",
@@ -34,7 +54,7 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb",
+            "MIMode": "gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

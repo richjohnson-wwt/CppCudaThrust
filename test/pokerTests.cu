@@ -1,12 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
 
-#define THRUST_DEBUG 1
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
-
+#include "../src/poker.cuh"
 
 int helper() {
     std::vector<int> host_vec{3, 1, 4, 1, 5, 9};

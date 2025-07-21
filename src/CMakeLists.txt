@@ -1,6 +1,5 @@
 
-find_package(Thrust)
 
-add_executable(poker main.cpp)
+add_executable(poker main.cu)
 
-target_link_libraries(poker PRIVATE thrust::thrust)
+set_property(TARGET poker PROPERTY CUDA_ARCHITECTURES OFF)
