@@ -115,9 +115,7 @@ public:
         if (!isStraight && ranks[0] == 0 && ranks[1] == 1 && ranks[2] == 2 && ranks[3] == 3 && ranks[4] == 4) {
             isStraight = true;
         }
-
     }
-
 };
 
 class EvaluatorHand 
@@ -150,10 +148,8 @@ public:
             // Royal Flush - don't print here due to thread concurrency
             return 9; // Royal Flush
         } else if (isFlush && isStraight) {
-            // showHand(ranks, suits);
             return 8; // Straight Flush
         } else if (maxRankCount == 4) {
-            // showHand(ranks, suits);
             return 7; // Four of a Kind
         } else if (maxRankCount == 3 && pairCount == 1) {
             return 6; // Full House
@@ -172,6 +168,5 @@ public:
         }
     }
 };
-
 
 #endif // EVALUATOR_H

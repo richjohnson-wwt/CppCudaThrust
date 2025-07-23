@@ -178,9 +178,6 @@ int main() {
     thrust::host_vector<int> h_results = d_results;
     thrust::host_vector<Hand> h_hands = d_hands;
     
-    // std::cout << "\nGPU processing completed in " << duration.count() << " ms\n";
-    // std::cout << "Performance: " << (NUM_HANDS / (duration.count() / 1000.0)) << " hands/second\n";
-
     auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
     double ms = duration_ns.count() / 1000000.0;
     std::cout << std::fixed << std::setprecision(3);

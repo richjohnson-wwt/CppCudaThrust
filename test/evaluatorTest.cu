@@ -3,7 +3,15 @@
 
 #include "../src/evaluator.cuh"
 
-
+#define CUDA_CHECK(call) \
+    do { \
+        cudaError_t err = call; \
+        if (err != cudaSuccess) { \
+            std::cerr << "CUDA Error at " << __FILE__ << ":" << __LINE__ \
+                      << ": " << cudaGetErrorString(err) << std::endl; \
+            FAIL("CUDA Error"); \
+        } \
+    } while (0)
 
 __global__ void testUnpackTupleKernel(uint8_t* resultCards, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e) 
 {
@@ -61,13 +69,13 @@ __global__ void generateHandsKernel(Hand* d_hands, int num_hands, curandState* r
     }
 }
 
-TEST_CASE("Evaluator Tests - unpackTuple", "[evaluator]") 
+TEST_CASE("EvaluatorHelper Tests - unpackTuple", "[cuda][kernel][EvaluatorHelper]") 
 {
     uint8_t host_cards[5] = {0, 0, 0, 0, 0};
 
     uint8_t* device_cards;
 
-    cudaMalloc(&device_cards, sizeof(uint8_t) * 5);
+    CUDA_CHECK(cudaMalloc(&device_cards, sizeof(uint8_t) * 5));
 
     testUnpackTupleKernel<<<1, 1>>>(device_cards, 6, 15, 48, 13, 3);
 
@@ -83,7 +91,7 @@ TEST_CASE("Evaluator Tests - unpackTuple", "[evaluator]")
     REQUIRE(host_cards[4] == 3);
 }
 
-TEST_CASE("Evaluator Tests - rankAndSuits", "[evaluator]") 
+TEST_CASE("EvaluatorHelper Tests - rankAndSuits", "[cuda][kernel][EvaluatorHelper]") 
 {
     uint8_t host_ranks[5] = {0, 0, 0, 0, 0};
     uint8_t host_suits[5] = {0, 0, 0, 0, 0};
@@ -116,9 +124,8 @@ TEST_CASE("Evaluator Tests - rankAndSuits", "[evaluator]")
     REQUIRE(host_suits[4] == 0);
 }
 
-TEST_CASE("Evaluator Test - bubbleSortHand", "[evaluator]") 
+TEST_CASE("EvaluatorHelper Test - bubbleSortHand", "[cuda][kernel][EvaluatorHelper]") 
 {
-
     uint8_t host_cards[5] = {6, 2, 9, 0, 3};
     uint8_t host_result[5] = {0, 0, 0, 0, 0};
 
@@ -142,120 +149,103 @@ TEST_CASE("Evaluator Test - bubbleSortHand", "[evaluator]")
     REQUIRE(host_result[4] == 9);
 }
 
-TEST_CASE("Evaluator Test - doRankAndPairCounts HighCard", "[evaluator]") 
+TEST_CASE("EvaluatorHelper Test - doRankAndPairCounts", "[cuda][kernel][EvaluatorHelper]") 
 {
     int* d_maxRankCount, *d_pairCount;
     cudaMalloc(&d_maxRankCount, sizeof(int));
     cudaMalloc(&d_pairCount, sizeof(int));
 
-    testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 6, 2, 9, 0, 3);
+    SECTION("HighCard")
+    {
+        testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 6, 2, 9, 0, 3);
 
-    cudaDeviceSynchronize();
+        cudaDeviceSynchronize();
+    
+        int h_maxRankCount, h_pairCount;
+        cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+    
+        REQUIRE(h_maxRankCount == 1);
+        REQUIRE(h_pairCount == 0);
 
-    int h_maxRankCount, h_pairCount;
-    cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+    }
 
-    REQUIRE(h_maxRankCount == 1);
-    REQUIRE(h_pairCount == 0);
+    SECTION("One Pair")
+    {
+        testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 2, 6, 9, 12);
+
+        cudaDeviceSynchronize();
+
+        int h_maxRankCount, h_pairCount;
+        cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+
+        REQUIRE(h_maxRankCount == 2);
+        REQUIRE(h_pairCount == 1);
+    }
+
+    SECTION("Two Pair")
+    {
+        testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 2, 3, 3, 4);
+
+        cudaDeviceSynchronize();
+
+        int h_maxRankCount, h_pairCount;
+        cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+
+        REQUIRE(h_maxRankCount == 2);
+        REQUIRE(h_pairCount == 2);
+    }
+
+    SECTION("3 of a kind")
+    {
+        testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 3, 3, 3, 4);
+
+        cudaDeviceSynchronize();
+
+        int h_maxRankCount, h_pairCount;
+        cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+
+        REQUIRE(h_maxRankCount == 3);
+        REQUIRE(h_pairCount == 0);
+    }
+
+    SECTION("Full House")
+    {
+        testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 2, 3, 3, 3);
+
+        cudaDeviceSynchronize();
+
+        int h_maxRankCount, h_pairCount;
+        cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+
+        REQUIRE(h_maxRankCount == 3);
+        REQUIRE(h_pairCount == 1);
+    }
+
+    SECTION("4 of a kind")
+    {
+        testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 3, 3, 3, 3);
+
+        cudaDeviceSynchronize();
+
+        int h_maxRankCount, h_pairCount;
+        cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
+
+        REQUIRE(h_maxRankCount == 4);
+        REQUIRE(h_pairCount == 0);
+    }
 }
 
-TEST_CASE("Evaluator Test - doRankAndPairCounts One Pair", "[evaluator]")
- {
-    int* d_maxRankCount, *d_pairCount;
-    cudaMalloc(&d_maxRankCount, sizeof(int));
-    cudaMalloc(&d_pairCount, sizeof(int));
-
-    testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 2, 6, 9, 12);
-
-    cudaDeviceSynchronize();
-
-    int h_maxRankCount, h_pairCount;
-    cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_maxRankCount == 2);
-    REQUIRE(h_pairCount == 1);
-}
-
-TEST_CASE("Evaluator Test - doRankAndPairCounts Two Pair", "[evaluator]") 
-{
-    int* d_maxRankCount, *d_pairCount;
-    cudaMalloc(&d_maxRankCount, sizeof(int));
-    cudaMalloc(&d_pairCount, sizeof(int));
-
-    testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 2, 3, 3, 4);
-
-    cudaDeviceSynchronize();
-
-    int h_maxRankCount, h_pairCount;
-    cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_maxRankCount == 2);
-    REQUIRE(h_pairCount == 2);
-}
-
-TEST_CASE("Evaluator Test - doRankAndPairCounts Trips", "[evaluator]") 
-{
-
-    int* d_maxRankCount, *d_pairCount;
-    cudaMalloc(&d_maxRankCount, sizeof(int));
-    cudaMalloc(&d_pairCount, sizeof(int));
-
-    testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 3, 3, 3, 4);
-
-    cudaDeviceSynchronize();
-
-    int h_maxRankCount, h_pairCount;
-    cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_maxRankCount == 3);
-    REQUIRE(h_pairCount == 0);
-}
-
-TEST_CASE("Evaluator Test - doRankAndPairCounts FullHouse", "[evaluator]") 
-{
-    int* d_maxRankCount, *d_pairCount;
-    cudaMalloc(&d_maxRankCount, sizeof(int));
-    cudaMalloc(&d_pairCount, sizeof(int));
-
-    testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 2, 3, 3, 3);
-
-    cudaDeviceSynchronize();
-
-    int h_maxRankCount, h_pairCount;
-    cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_maxRankCount == 3);
-    REQUIRE(h_pairCount == 1);
-}
-
-TEST_CASE("Evaluator Test - doRankAndPairCounts Quad", "[evaluator]") 
-{
-    int* d_maxRankCount, *d_pairCount;
-    cudaMalloc(&d_maxRankCount, sizeof(int));
-    cudaMalloc(&d_pairCount, sizeof(int));
-
-    testRankAndPairCountsKernel<<<1, 1>>>(d_maxRankCount, d_pairCount, 2, 3, 3, 3, 3);
-
-    cudaDeviceSynchronize();
-
-    int h_maxRankCount, h_pairCount;
-    cudaMemcpy(&h_maxRankCount, d_maxRankCount, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_pairCount, d_pairCount, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_maxRankCount == 4);
-    REQUIRE(h_pairCount == 0);
-}
-
-TEST_CASE("Evaluator Test - doFlushAndStaight staight", "[evaluator]") 
+TEST_CASE("EvaluatorHelper Test - doFlushAndStaight", "[cuda][kernel][EvaluatorHelper]") 
 {
     // Host arrays
-    uint8_t ranks[5] = {0, 1, 2, 3, 4};
-    uint8_t suits[5] = {0, 1, 2, 3, 0};
+    uint8_t ranks[5] = {};
+    uint8_t suits[5] = {};
 
     // device arrays
     uint8_t *d_ranks, *d_suits;
@@ -271,147 +261,147 @@ TEST_CASE("Evaluator Test - doFlushAndStaight staight", "[evaluator]")
     cudaMemcpy(d_ranks, ranks, 5 * sizeof(uint8_t), cudaMemcpyHostToDevice);
     cudaMemcpy(d_suits, suits, 5 * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
-    testFlushAndStaightKernel<<<1, 1>>>(d_isFlush, d_isStraight, ranks, suits);
+    SECTION("straight")
+    {
+        ranks[0] = 0;
+        ranks[1] = 1;
+        ranks[2] = 2;
+        ranks[3] = 3;
+        ranks[4] = 4;
 
-    // Synchronize and check for errors
-    cudaError_t cudaStatus = cudaDeviceSynchronize();
-    REQUIRE(cudaStatus == cudaSuccess);
+        suits[0] = 0;
+        suits[1] = 1;
+        suits[2] = 2;
+        suits[3] = 3;
+        suits[4] = 0;
+        testFlushAndStaightKernel<<<1, 1>>>(d_isFlush, d_isStraight, ranks, suits);
 
-    // 4. Copy results back to HOST
-    bool h_isFlush, h_isStraight;
-    cudaMemcpy(&h_isFlush, d_isFlush, sizeof(bool), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_isStraight, d_isStraight, sizeof(bool), cudaMemcpyDeviceToHost);
+        // Synchronize and check for errors
+        cudaError_t cudaStatus = cudaDeviceSynchronize();
+        REQUIRE(cudaStatus == cudaSuccess);
+    
+        // Copy results back to HOST
+        bool h_isFlush, h_isStraight;
+        cudaMemcpy(&h_isFlush, d_isFlush, sizeof(bool), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_isStraight, d_isStraight, sizeof(bool), cudaMemcpyDeviceToHost);
+    
+        CHECK_FALSE(h_isFlush);
+        CHECK(h_isStraight);
+    
+        // Cleanup
+        cudaFree(d_isFlush);
+        cudaFree(d_isStraight);
+    }
 
-    CHECK_FALSE(h_isFlush);
-    CHECK(h_isStraight);
+    SECTION("flush")
+    {
+        ranks[0] = 0;
+        ranks[1] = 1;
+        ranks[2] = 2;
+        ranks[3] = 3;
+        ranks[4] = 8;
 
-    // 6. Cleanup
-    cudaFree(d_isFlush);
-    cudaFree(d_isStraight);
+        suits[0] = 1;
+        suits[1] = 1;
+        suits[2] = 1;
+        suits[3] = 1;
+        suits[4] = 1;
+
+        testFlushAndStaightKernel<<<1, 1>>>(d_isFlush, d_isStraight, ranks, suits);
+
+        // Synchronize and check for errors
+        cudaError_t cudaStatus = cudaDeviceSynchronize();
+        REQUIRE(cudaStatus == cudaSuccess);
+
+        // Copy results back to HOST
+        bool h_isFlush, h_isStraight;
+        cudaMemcpy(&h_isFlush, d_isFlush, sizeof(bool), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_isStraight, d_isStraight, sizeof(bool), cudaMemcpyDeviceToHost);
+
+        CHECK(h_isFlush);
+        CHECK_FALSE(h_isStraight);
+
+        // Cleanup
+        cudaFree(d_isFlush);
+        cudaFree(d_isStraight);
+    }
+
+    SECTION("Staight Flush")
+    {
+        ranks[0] = 0;
+        ranks[1] = 1;
+        ranks[2] = 2;
+        ranks[3] = 3;
+        ranks[4] = 4;
+
+        suits[0] = 1;
+        suits[1] = 1;
+        suits[2] = 1;
+        suits[3] = 1;
+        suits[4] = 1;
+
+        testFlushAndStaightKernel<<<1, 1>>>(d_isFlush, d_isStraight, ranks, suits);
+
+        // Synchronize and check for errors
+        cudaError_t cudaStatus = cudaDeviceSynchronize();
+        REQUIRE(cudaStatus == cudaSuccess);
+
+        // Copy results back to HOST
+        bool h_isFlush, h_isStraight;
+        cudaMemcpy(&h_isFlush, d_isFlush, sizeof(bool), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&h_isStraight, d_isStraight, sizeof(bool), cudaMemcpyDeviceToHost);
+
+        CHECK(h_isFlush);
+        CHECK(h_isStraight);
+
+        // Cleanup
+        cudaFree(d_isFlush);
+        cudaFree(d_isStraight);
+    }
 }
 
-TEST_CASE("Evaluator Test - doFlushAndStaight flush", "[evaluator]") 
-{
-    uint8_t ranks[5] = {1, 1, 2, 3, 4};
-    uint8_t suits[5] = {1, 1, 1, 1, 1};
-
-    // device arrays
-    uint8_t *d_ranks, *d_suits;
-    cudaMalloc(&d_ranks, 5 * sizeof(uint8_t));
-    cudaMalloc(&d_suits, 5 * sizeof(uint8_t));
-
-    bool* d_isFlush;
-    bool* d_isStraight;
-    cudaMalloc(&d_isFlush, sizeof(bool));
-    cudaMalloc(&d_isStraight, sizeof(bool));
-
-    // Copy host arrays to device
-    cudaMemcpy(d_ranks, ranks, 5 * sizeof(uint8_t), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_suits, suits, 5 * sizeof(uint8_t), cudaMemcpyHostToDevice);
-
-    testFlushAndStaightKernel<<<1, 1>>>(d_isFlush, d_isStraight, ranks, suits);
-
-    // Synchronize and check for errors
-    cudaError_t cudaStatus = cudaDeviceSynchronize();
-    REQUIRE(cudaStatus == cudaSuccess);
-
-    // 4. Copy results back to HOST
-    bool h_isFlush, h_isStraight;
-    cudaMemcpy(&h_isFlush, d_isFlush, sizeof(bool), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_isStraight, d_isStraight, sizeof(bool), cudaMemcpyDeviceToHost);
-
-    CHECK(h_isFlush);
-    CHECK_FALSE(h_isStraight);
-
-    // 6. Cleanup
-    cudaFree(d_isFlush);
-    cudaFree(d_isStraight);
-}
-
-TEST_CASE("Evaluator Test - doFlushAndStaight straight and flush", "[evaluator]") 
-{
-    uint8_t ranks[5] = {0, 1, 2, 3, 4};
-    uint8_t suits[5] = {1, 1, 1, 1, 1};
-
-    // device arrays
-    uint8_t *d_ranks, *d_suits;
-    cudaMalloc(&d_ranks, 5 * sizeof(uint8_t));
-    cudaMalloc(&d_suits, 5 * sizeof(uint8_t));
-
-    bool* d_isFlush;
-    bool* d_isStraight;
-    cudaMalloc(&d_isFlush, sizeof(bool));
-    cudaMalloc(&d_isStraight, sizeof(bool));
-
-    // Copy host arrays to device
-    cudaMemcpy(d_ranks, ranks, 5 * sizeof(uint8_t), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_suits, suits, 5 * sizeof(uint8_t), cudaMemcpyHostToDevice);
-
-    testFlushAndStaightKernel<<<1, 1>>>(d_isFlush, d_isStraight, ranks, suits);
-
-    // Synchronize and check for errors
-    cudaError_t cudaStatus = cudaDeviceSynchronize();
-    REQUIRE(cudaStatus == cudaSuccess);
-
-    // 4. Copy results back to HOST
-    bool h_isFlush, h_isStraight;
-    cudaMemcpy(&h_isFlush, d_isFlush, sizeof(bool), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_isStraight, d_isStraight, sizeof(bool), cudaMemcpyDeviceToHost);
-
-    CHECK(h_isFlush);
-    CHECK(h_isStraight);
-
-    // 6. Cleanup
-    cudaFree(d_isFlush);
-    cudaFree(d_isStraight);
-}
-
-TEST_CASE("Evaluator Tests - operator() Royal Flush", "[evaluator]") 
-{
-    int* d_resultScore;
-    cudaMalloc(&d_resultScore, sizeof(int));
-
-    testOperatorOverloadKernel<<<1, 1>>>(d_resultScore, 8, 9, 10, 11, 12);
-
-    cudaDeviceSynchronize();
-
-    int h_resultScore;
-    cudaMemcpy(&h_resultScore, d_resultScore, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_resultScore == 9);
-}
-
-TEST_CASE("Evaluator Tests - operator() High Card", "[evaluator]") 
+TEST_CASE("EvaluatorHand Tests - operator()", "[EvaluatorHand]") 
 {
     int* d_resultScore;
     cudaMalloc(&d_resultScore, sizeof(int));
 
-    testOperatorOverloadKernel<<<1, 1>>>(d_resultScore, 1, 3, 10, 11, 25);
+    SECTION("Royal Flush")
+    {
+        testOperatorOverloadKernel<<<1, 1>>>(d_resultScore, 8, 9, 10, 11, 12);
 
-    cudaDeviceSynchronize();
+        cudaDeviceSynchronize();
 
-    int h_resultScore;
-    cudaMemcpy(&h_resultScore, d_resultScore, sizeof(int), cudaMemcpyDeviceToHost);
+        int h_resultScore;
+        cudaMemcpy(&h_resultScore, d_resultScore, sizeof(int), cudaMemcpyDeviceToHost);
 
-    REQUIRE(h_resultScore == 0);
+        REQUIRE(h_resultScore == 9);
+    }
+    SECTION("High Card")
+    {
+        testOperatorOverloadKernel<<<1, 1>>>(d_resultScore, 1, 3, 10, 11, 25);
+
+        cudaDeviceSynchronize();
+    
+        int h_resultScore;
+        cudaMemcpy(&h_resultScore, d_resultScore, sizeof(int), cudaMemcpyDeviceToHost);
+    
+        REQUIRE(h_resultScore == 0);
+    }
+    SECTION("Full House")
+    {
+        testOperatorOverloadKernel<<<1, 1>>>(d_resultScore, 1, 14, 15, 28, 41);
+
+        cudaDeviceSynchronize();
+
+        int h_resultScore;
+        cudaMemcpy(&h_resultScore, d_resultScore, sizeof(int), cudaMemcpyDeviceToHost);
+
+        REQUIRE(h_resultScore == 6);
+    }
 }
 
-TEST_CASE("Evaluator Tests - operator() Full House", "[evaluator]") 
-{
-    int* d_resultScore;
-    cudaMalloc(&d_resultScore, sizeof(int));
 
-    testOperatorOverloadKernel<<<1, 1>>>(d_resultScore, 1, 14, 15, 28, 41);
-
-    cudaDeviceSynchronize();
-
-    int h_resultScore;
-    cudaMemcpy(&h_resultScore, d_resultScore, sizeof(int), cudaMemcpyDeviceToHost);
-
-    REQUIRE(h_resultScore == 6);
-}
-
-TEST_CASE("Evaluator Tests - evaluateAllHands 2 straight flush hands", "[evaluator]") 
+TEST_CASE("EvaluatorHand Tests - evaluateAllHands", "[EvaluatorHand]") 
 {
     int N = 2;
     thrust::device_vector<Hand> d_hands(N);
@@ -434,7 +424,7 @@ TEST_CASE("Evaluator Tests - evaluateAllHands 2 straight flush hands", "[evaluat
     REQUIRE(h_results[1] == 9);
 }
 
-TEST_CASE("Deal Hand", "[evaluator]") 
+TEST_CASE("PokerHand - Deal Hand", "[PokerHand]") 
 {
     int num_hands = 128;
     curandState* d_rng_states;
@@ -463,5 +453,4 @@ TEST_CASE("Deal Hand", "[evaluator]")
     cards[4] = thrust::get<4>(hand);
 
     CHECK((cards[0] >= 0 && cards[0] <= 51));
-
 }
