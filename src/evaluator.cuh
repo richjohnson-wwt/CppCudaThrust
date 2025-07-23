@@ -8,21 +8,29 @@
 #include <thrust/execution_policy.h>
 #include <curand_kernel.h>
 
+/*
+0 2C    13 2D    26 2H    39 2S
+1 3C    14 3D    27 3H    40 3S
+2 4C    15 4D    28 4H    41 4S
+...
+11 KC   24 KD    37 KH    50 KS
+12 AC   25 AD    38 AH    51 AS
+*/
 
-using Hand = thrust::tuple<int, int, int, int, int>;
+using Hand = thrust::tuple<uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>;
 
 class PokerHand 
 {
 public:
     __device__ void dealHand(Hand* d_hands, int thread_id, curandState* rng_states) {
         bool used[52] = {false};
-        int cards[5];
+        uint8_t cards[5];
 
         // Use cuRAND for high-quality random number generation
         curandState* rng = &rng_states[thread_id];
 
         for (int i = 0; i < 5; ++i) {
-            int card;
+            uint8_t card;
             do {
                 // Generate uniform random number in [0, 51]
                 card = curand(rng) % 52;
@@ -41,7 +49,7 @@ class EvaluatorHelper
 {
 public:
     
-    __device__ void unpackTuple(const Hand& hand, int* cards) const 
+    __device__ void unpackTuple(const Hand& hand, uint8_t* cards) const 
     {
         cards[0] = thrust::get<0>(hand);
         cards[1] = thrust::get<1>(hand);
@@ -50,20 +58,20 @@ public:
         cards[4] = thrust::get<4>(hand);
     }
 
-    __device__ void rankAndSuits(int* hand, uint8_t *ranks, uint8_t *suits) const 
+    __device__ void rankAndSuits(uint8_t* hand, uint8_t *ranks, uint8_t *suits) const 
     {
-        for (int i = 0; i < 5; i++) {
+        for (uint8_t i = 0; i < 5; i++) {
             ranks[i] = hand[i] % 13;
             suits[i] = hand[i] / 13;
         }
     }
 
-    __device__ void bubbleSortHand(uint8_t *hand) const 
+    __device__ __host__ void bubbleSortHand(uint8_t *hand) const 
     {
-        for (int i = 0; i < 5 - 1; i++) {
-            for (int j = 0; j < 5 - i - 1; j++) {
+        for (uint8_t i = 0; i < 5 - 1; i++) {
+            for (uint8_t j = 0; j < 5 - i - 1; j++) {
                 if (hand[j] > hand[j + 1]) {
-                    int temp = hand[j];
+                    uint8_t temp = hand[j];
                     hand[j] = hand[j + 1];
                     hand[j + 1] = temp;
                 }
@@ -74,11 +82,11 @@ public:
     __device__ void doRankAndPairCounts(uint8_t* ranks, int& maxRankCount, int& pairCount) const 
     {
         uint8_t rankCount[13] = {0};
-        for (int i = 0; i < 5; i++) {
+        for (uint8_t i = 0; i < 5; i++) {
             rankCount[ranks[i]]++;
         }
 
-        for (int i = 0; i < 13; i++) {
+        for (uint8_t i = 0; i < 13; i++) {
             if (rankCount[i] > maxRankCount) {
                 maxRankCount = rankCount[i];
             }
@@ -91,7 +99,7 @@ public:
     __device__ void doFlushAndStaight(uint8_t *ranks, uint8_t* suits, bool& isFlush, bool& isStraight) const 
     {
         isFlush = true;
-        for (int i = 1; i < 5; i++) {
+        for (uint8_t i = 1; i < 5; i++) {
             if (suits[i] != suits[0]) {
                 isFlush = false;
                 break;
@@ -120,7 +128,7 @@ public:
     // Main evaluation function - called from kernels
     __device__ int operator()(const Hand& hand) const 
     {
-        int cards[5];
+        uint8_t cards[5];
         m_helper.unpackTuple(hand, cards);
     
         uint8_t ranks[5];

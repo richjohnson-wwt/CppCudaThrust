@@ -5,17 +5,17 @@
 
 
 
-__global__ void testUnpackTupleKernel(int* resultCards, int a, int b, int c, int d, int e) 
+__global__ void testUnpackTupleKernel(uint8_t* resultCards, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e) 
 {
     EvaluatorHelper testObject; // Create an instance of evaluate_hand
     Hand hand = thrust::make_tuple(a, b, c, d, e);
     testObject.unpackTuple(hand, resultCards); // Call unpackTuple
 }
 
-__global__ void testRankAndSuitsKernel(uint8_t* resultRanks, uint8_t* resultSuits, int a, int b, int c, int d, int e) 
+__global__ void testRankAndSuitsKernel(uint8_t* resultRanks, uint8_t* resultSuits, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e) 
 {
     EvaluatorHelper testObject; // Create an instance of evaluate_hand
-    int hand[5] = {a, b, c, d, e};
+    uint8_t hand[5] = {a, b, c, d, e};
     testObject.rankAndSuits(&hand[0], resultRanks, resultSuits);
 }
 
@@ -38,7 +38,7 @@ __global__ void testFlushAndStaightKernel(bool* resultIsFlush, bool* resultIsStr
     testObject.doFlushAndStaight(&ranks[0], &suits[0], *resultIsFlush, *resultIsStraight);
 }
 
-__global__ void testOperatorOverloadKernel(int* resultScore, int a, int b, int c, int d, int e) 
+__global__ void testOperatorOverloadKernel(int* resultScore, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e) 
 {
     Hand hand = thrust::make_tuple(a, b, c, d, e);
     *resultScore = EvaluatorHand{}(hand);
@@ -63,17 +63,17 @@ __global__ void generateHandsKernel(Hand* d_hands, int num_hands, curandState* r
 
 TEST_CASE("Evaluator Tests - unpackTuple", "[evaluator]") 
 {
-    int host_cards[5] = {0, 0, 0, 0, 0};
+    uint8_t host_cards[5] = {0, 0, 0, 0, 0};
 
-    int* device_cards;
+    uint8_t* device_cards;
 
-    cudaMalloc(&device_cards, sizeof(int) * 5);
+    cudaMalloc(&device_cards, sizeof(uint8_t) * 5);
 
     testUnpackTupleKernel<<<1, 1>>>(device_cards, 6, 15, 48, 13, 3);
 
     cudaDeviceSynchronize();
 
-    cudaMemcpy(host_cards, device_cards, sizeof(int) * 5, cudaMemcpyDeviceToHost);
+    cudaMemcpy(host_cards, device_cards, sizeof(uint8_t) * 5, cudaMemcpyDeviceToHost);
     cudaFree(device_cards);
 
     REQUIRE(host_cards[0] == 6);

@@ -7,6 +7,29 @@
 #include <curand_kernel.h>
 #include "evaluator.cuh"
 
+__device__ void whoami(void) {
+    int block_id =
+        blockIdx.x +    // apartment number on this floor (points across)
+        blockIdx.y * gridDim.x +    // floor number in this building (rows high)
+        blockIdx.z * gridDim.x * gridDim.y;   // building number in this city (panes deep)
+
+    int block_offset =
+        block_id * // times our apartment number
+        blockDim.x * blockDim.y * blockDim.z; // total threads per block (people per apartment)
+
+    int thread_offset =
+        threadIdx.x +  
+        threadIdx.y * blockDim.x +
+        threadIdx.z * blockDim.x * blockDim.y;
+
+    int id = block_offset + thread_offset; // global person id in the entire apartment complex
+
+    printf("%04d | Block(%d %d %d) = %3d | Thread(%d %d %d) = %3d\n",
+        id,
+        blockIdx.x, blockIdx.y, blockIdx.z, block_id,
+        threadIdx.x, threadIdx.y, threadIdx.z, thread_offset);
+}
+
 // Kernel to initialize cuRAND states
 __global__ void setupRNG(curandState *state, unsigned long seed, int num_threads)
 {
@@ -21,6 +44,8 @@ __global__ void setupRNG(curandState *state, unsigned long seed, int num_threads
 __global__ void dealAndEvaluateHands(Hand* d_hands, int* d_results, int num_hands, curandState* rng_states)
 {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    // whoami();
     
     if (tid < num_hands) {
         PokerHand pokerHand;
@@ -35,10 +60,13 @@ __global__ void dealAndEvaluateHands(Hand* d_hands, int* d_results, int num_hand
 
 // Host function to print a single hand nicely
 void printHand(const Hand& hand) {
-    int cards[5] = {
+    uint8_t cards[5] = {
         thrust::get<0>(hand), thrust::get<1>(hand), thrust::get<2>(hand),
         thrust::get<3>(hand), thrust::get<4>(hand)
     };
+
+    EvaluatorHelper helper;
+    helper.bubbleSortHand(cards);  // host call!
     
     for (int i = 0; i < 5; i++) {
         int rank = cards[i] % 13;
@@ -98,8 +126,10 @@ int main() {
         std::cout << "Debug configuration!\n";
     #endif
 
-    const int NUM_HANDS = 2598960;  // (52/5) permutations
-    const int THREADS_PER_BLOCK = 256;
+    const int NUM_HANDS = 2598960 * 2;  // (52/5) permutations
+    // const int NUM_HANDS = 1025;  // (52/5) permutations
+    // const int THREADS_PER_BLOCK = 256;
+    const int THREADS_PER_BLOCK = 512;
     const int NUM_BLOCKS = (NUM_HANDS + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     
     std::cout << "Dealing and evaluating " << NUM_HANDS << " poker hands on GPU...\n";
@@ -148,8 +178,14 @@ int main() {
     thrust::host_vector<int> h_results = d_results;
     thrust::host_vector<Hand> h_hands = d_hands;
     
-    std::cout << "\nGPU processing completed in " << duration.count() << " ms\n";
-    std::cout << "Performance: " << (NUM_HANDS / (duration.count() / 1000.0)) << " hands/second\n";
+    // std::cout << "\nGPU processing completed in " << duration.count() << " ms\n";
+    // std::cout << "Performance: " << (NUM_HANDS / (duration.count() / 1000.0)) << " hands/second\n";
+
+    auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+    double ms = duration_ns.count() / 1000000.0;
+    std::cout << std::fixed << std::setprecision(3);
+    std::cout << "\nGPU processing completed in " << ms << " ms\n";
+    std::cout << "Performance: " << (NUM_HANDS / (ms / 1000.0)) << " hands/second\n";
     
     // Print statistics with examples of rare hands
     printStatistics(h_results, h_hands, NUM_HANDS);
