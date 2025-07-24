@@ -73,3 +73,22 @@ vast.ai - Cannot debug on GPU without special tools: nsight compute, cuda-gdb TO
     [user]
         email = rich.johnson@wwt.com
         name = Rich Johnson
+
+# SCP file
+
+    scp -P 55425 root@116.102.206.157:/workspace/CppCudaThrust/src/mandelbrot.png .
+
+# device info 7/24/25
+
+    Device 0: NVIDIA GeForce RTX 5070 Ti
+    Compute capability: 12.0
+    Total global memory: 15848 MB
+    Multiprocessors: 70
+    Clock rate: 2452 MHz
+    Shared memory per block: 48 KB
+    Registers per block: 65536
+    Warp size: 32
+    Max threads per block: 1024
+    Max threads per SM: 1536
+    Max grid size: (2147483647, 65535, 65535)
+    Max block dimensions: (1024, 1024, 64)

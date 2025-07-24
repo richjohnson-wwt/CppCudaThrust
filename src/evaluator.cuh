@@ -106,7 +106,6 @@ public:
             }
         }
 
-        // Check for straight
         // Normal straight: consecutive ranks
         isStraight = (ranks[0] + 1 == ranks[1] && ranks[1] + 1 == ranks[2] && 
                     ranks[2] + 1 == ranks[3] && ranks[3] + 1 == ranks[4]);

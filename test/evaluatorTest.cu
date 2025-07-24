@@ -239,6 +239,9 @@ TEST_CASE("EvaluatorHelper Test - doRankAndPairCounts", "[cuda][kernel][Evaluato
         REQUIRE(h_maxRankCount == 4);
         REQUIRE(h_pairCount == 0);
     }
+    // Clean up allocated memory
+    cudaFree(d_maxRankCount);
+    cudaFree(d_pairCount);
 }
 
 TEST_CASE("EvaluatorHelper Test - doFlushAndStaight", "[cuda][kernel][EvaluatorHelper]") 
@@ -287,10 +290,6 @@ TEST_CASE("EvaluatorHelper Test - doFlushAndStaight", "[cuda][kernel][EvaluatorH
     
         CHECK_FALSE(h_isFlush);
         CHECK(h_isStraight);
-    
-        // Cleanup
-        cudaFree(d_isFlush);
-        cudaFree(d_isStraight);
     }
 
     SECTION("flush")
@@ -320,10 +319,6 @@ TEST_CASE("EvaluatorHelper Test - doFlushAndStaight", "[cuda][kernel][EvaluatorH
 
         CHECK(h_isFlush);
         CHECK_FALSE(h_isStraight);
-
-        // Cleanup
-        cudaFree(d_isFlush);
-        cudaFree(d_isStraight);
     }
 
     SECTION("Staight Flush")
@@ -353,11 +348,12 @@ TEST_CASE("EvaluatorHelper Test - doFlushAndStaight", "[cuda][kernel][EvaluatorH
 
         CHECK(h_isFlush);
         CHECK(h_isStraight);
-
-        // Cleanup
-        cudaFree(d_isFlush);
-        cudaFree(d_isStraight);
     }
+    // Cleanup
+    cudaFree(d_ranks);
+    cudaFree(d_suits);
+    cudaFree(d_isFlush);
+    cudaFree(d_isStraight);
 }
 
 TEST_CASE("EvaluatorHand Tests - operator()", "[EvaluatorHand]") 
@@ -398,6 +394,8 @@ TEST_CASE("EvaluatorHand Tests - operator()", "[EvaluatorHand]")
 
         REQUIRE(h_resultScore == 6);
     }
+
+    cudaFree(d_resultScore);
 }
 
 
@@ -453,4 +451,6 @@ TEST_CASE("PokerHand - Deal Hand", "[PokerHand]")
     cards[4] = thrust::get<4>(hand);
 
     CHECK((cards[0] >= 0 && cards[0] <= 51));
+
+    cudaFree(d_rng_states);
 }

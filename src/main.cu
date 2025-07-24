@@ -30,7 +30,7 @@ __device__ void whoami(void) {
         threadIdx.x, threadIdx.y, threadIdx.z, thread_offset);
 }
 
-// Kernel to initialize cuRAND states
+// Kernel to initialize cuRAND states - setup Random Number Generator
 __global__ void setupRNG(curandState *state, unsigned long seed, int num_threads)
 {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -129,7 +129,7 @@ int main() {
     const int NUM_HANDS = 2598960 * 2;  // (52/5) permutations
     // const int NUM_HANDS = 1025;  // (52/5) permutations
     // const int THREADS_PER_BLOCK = 256;
-    const int THREADS_PER_BLOCK = 512;
+    const int THREADS_PER_BLOCK = 1024;
     const int NUM_BLOCKS = (NUM_HANDS + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     
     std::cout << "Dealing and evaluating " << NUM_HANDS << " poker hands on GPU...\n";
