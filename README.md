@@ -74,9 +74,12 @@ vast.ai - Cannot debug on GPU without special tools: nsight compute, cuda-gdb TO
         email = rich.johnson@wwt.com
         name = Rich Johnson
 
-# SCP file
+# SCP mandelbrot file
 
-    scp -P 55425 root@116.102.206.157:/workspace/CppCudaThrust/src/mandelbrot.png .
+    scp -p 40475 root@115.187.49.98:/workspace/CppCudaThrust/sandbox/mandelbrot.png .
+
+    Using 32400 blocks with 256 threads each -> 8,294,400 threads
+    Image written to mandelbrot.png
 
 # device info 7/24/25
 
@@ -85,6 +88,21 @@ vast.ai - Cannot debug on GPU without special tools: nsight compute, cuda-gdb TO
     Total global memory: 15848 MB
     Multiprocessors: 70
     Clock rate: 2452 MHz
+    Shared memory per block: 48 KB
+    Registers per block: 65536
+    Warp size: 32
+    Max threads per block: 1024
+    Max threads per SM: 1536
+    Max grid size: (2147483647, 65535, 65535)
+    Max block dimensions: (1024, 1024, 64)
+
+# device info 7/25/25
+
+    Device 0: NVIDIA GeForce RTX 5080
+    Compute capability: 12.0
+    Total global memory: 15837 MB
+    Multiprocessors: 84
+    Clock rate: 2617 MHz
     Shared memory per block: 48 KB
     Registers per block: 65536
     Warp size: 32

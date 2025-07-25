@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#include <iostream>
 
 // Image parameters
 const int WIDTH = 3840;
@@ -19,16 +20,26 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort=t
 }
 
 // CUDA kernel
-__global__ void mandelbrotKernel(unsigned char* image, int width, int height, int maxIter) {
+__global__ void mandelbrotKernel(unsigned char* image, int width, int height, int maxIter, bool zoom) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= width || y >= height) return;
 
-    // Define zoom region
-    float scale = 0.005f;  // Smaller = more zoom
-    float centerX = -0.743643887037151;  // Interesting detail
-    float centerY = 0.13182590420533;
+    float scale;
+    float centerX;
+    float centerY;
+    if (zoom) {
+        scale = 0.005f;  // Smaller = more zoom
+        centerX = -0.743643887037151;  // Interesting detail
+        centerY = 0.13182590420533;
+    }
+    else {
+        // Show full Mandelbrot set
+        scale = 4.0f;      // Much larger scale
+        centerX = -0.5f;   // Center of Mandelbrot set  
+        centerY = 0.0f;
+    }
 
     float fx = centerX + ((float)x / width - 0.5f) * scale * width / height;
     float fy = centerY + ((float)y / height - 0.5f) * scale;
@@ -62,7 +73,12 @@ int main() {
     dim3 gridSize((WIDTH + blockSize.x - 1) / blockSize.x,
                   (HEIGHT + blockSize.y - 1) / blockSize.y);
 
-    mandelbrotKernel<<<gridSize, blockSize>>>(d_image, WIDTH, HEIGHT, MAX_ITER);
+    int total_blocks = gridSize.x * gridSize.y * gridSize.z;
+    int threads_per_block = blockSize.x * blockSize.y * blockSize.z;
+    std::cout << "Using " << total_blocks << " blocks with " << threads_per_block << " threads each\n";
+
+    bool zoom = true;
+    mandelbrotKernel<<<gridSize, blockSize>>>(d_image, WIDTH, HEIGHT, MAX_ITER, zoom);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
