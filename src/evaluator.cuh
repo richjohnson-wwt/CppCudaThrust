@@ -15,6 +15,11 @@
 ...
 11 KC   24 KD    37 KH    50 KS
 12 AC   25 AD    38 AH    51 AS
+
+ranks[i] = hand[i] % 13;
+suits[i] = hand[i] / 13;
+
+std::cout << "23456789TJQKA"[rank] << "CDHS"[suit];
 */
 
 using Hand = thrust::tuple<uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>;

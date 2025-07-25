@@ -30,6 +30,7 @@ __global__ void testRankAndSuitsKernel(uint8_t* resultRanks, uint8_t* resultSuit
 __global__ void testBubbleSortHandKernel(uint8_t* resultCards) {
     EvaluatorHelper testObject; // Create an instance of evaluate_hand
     testObject.bubbleSortHand(resultCards);
+    // Note: you can print from the GPU but not with std::cout
     printf("\n\nResult: %d, %d, %d, %d, %d\n\n", resultCards[0], resultCards[1], resultCards[2], resultCards[3], resultCards[4]);
 }
 
